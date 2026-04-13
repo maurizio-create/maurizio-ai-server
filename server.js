@@ -8,6 +8,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+// API key comes from Render / environment variables (NOT hardcoded)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/ask-maurizio", async (req, res) => {
@@ -37,13 +38,18 @@ Answer questions about lessons, workshops, or music (album Premonitions) in a fr
     });
 
     const data = await response.json();
-    res.json({ answer: data.choices[0].message.content });
+
+    res.json({
+      answer: data.choices?.[0]?.message?.content || "No response generated."
+    });
+
   } catch (err) {
     console.error(err);
     res.json({ answer: "Sorry, I couldn't process that right now." });
   }
 });
 
+// IMPORTANT: Render requires process.env.PORT
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
