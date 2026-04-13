@@ -1,14 +1,13 @@
-// server.js
 import express from "express";
 import fetch from "node-fetch";
 import bodyParser from "body-parser";
 import cors from "cors";
 
 const app = express();
-app.use(bodyParser.json());
-app.use(cors()); // allows your front-end to call this endpoint
 
-// Load your API key from environment variable
+app.use(bodyParser.json());
+app.use(cors());
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/ask-maurizio", async (req, res) => {
@@ -22,7 +21,7 @@ app.post("/ask-maurizio", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -45,4 +44,8 @@ Answer questions about lessons, workshops, or music (album Premonitions) in a fr
   }
 });
 
-app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
