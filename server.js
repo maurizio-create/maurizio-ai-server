@@ -8,11 +8,18 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-// API key comes from Render / environment variables (NOT hardcoded)
+// Your OpenAI key (must be set in Render ENV variables)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/ask-maurizio", async (req, res) => {
   const question = req.body.question;
+
+  console.log("===================================");
+  console.log("NEW QUESTION RECEIVED:", question);
+
+  if (!question) {
+    return res.json({ answer: "No question received." });
+  }
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -26,30 +33,59 @@ app.post("/ask-maurizio", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: `You are Maurizio Russomanno, a singer-songwriter from Troy, NY.
-You teach guitar and songwriting lessons near RPI.
-Your style is poetic, playful, with a touch of New York wit.
-Answer questions about lessons, workshops, or music (album Premonitions) in a friendly, concise manner.`
+            content: `
+You are Maurizio Russomanno, a singer-songwriter and guitar teacher from Troy, New York.
+
+You are warm, poetic, slightly witty, and grounded.
+You teach guitar lessons near RPI and help students with songwriting, rhythm, and expression.
+
+Keep answers concise, musical, and human.
+            `.trim()
           },
-          { role: "user", content: question }
+          {
+            role: "user",
+            content: question
+          }
         ],
-        max_tokens: 150
+        max_tokens: 200
       })
     });
 
     const data = await response.json();
 
-    res.json({
-      answer: data.choices?.[0]?.message?.content || "No response generated."
-    });
+    console.log("OPENAI STATUS CODE:", response.status);
+    console.log("OPENAI RAW RESPONSE:");
+    console.log(JSON.stringify(data, null, 2));
+
+    // If OpenAI fails
+    if (!response.ok) {
+      return res.json({
+        answer: "OpenAI error: " + (data.error?.message || "Unknown error")
+      });
+    }
+
+    // Safe extraction
+    const answer = data?.choices?.[0]?.message?.content;
+
+    if (!answer) {
+      return res.json({
+        answer: "No response content returned from OpenAI (check server logs)."
+      });
+    }
+
+    res.json({ answer });
 
   } catch (err) {
+    console.error("SERVER ERROR:");
     console.error(err);
-    res.json({ answer: "Sorry, I couldn't process that right now." });
+
+    res.json({
+      answer: "Server error: " + err.message
+    });
   }
 });
 
-// IMPORTANT: Render requires process.env.PORT
+// Render uses this port automatically
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
