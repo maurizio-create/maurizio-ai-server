@@ -2,6 +2,8 @@ import express from "express";
 import fetch from "node-fetch";
 import bodyParser from "body-parser";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 
@@ -22,34 +24,50 @@ app.post("/ask-maurizio", async (req, res) => {
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `
+    // ✅ LOAD LATEST FILES ON EVERY REQUEST (NO CACHE)
+    const knowledge = fs.readFileSync(
+      path.resolve("./avatars/Knowledge.txt"),
+      "utf8"
+    );
+
+    const personality = fs.readFileSync(
+      path.resolve("./avatars/Personality.txt"),
+      "utf8"
+    );
+
+    const response = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `
+${personality}
+
+${knowledge}
+
 You are Maurizio Russomanno, a singer-songwriter and guitar teacher from Troy, New York.
 
 You are warm, poetic, slightly witty, and grounded.
-You teach guitar lessons near RPI and help students with songwriting, rhythm, and expression.
-
 Keep answers concise, musical, and human.
-            `.trim()
-          },
-          {
-            role: "user",
-            content: question
-          }
-        ],
-        max_tokens: 200
-      })
-    });
+              `.trim()
+            },
+            {
+              role: "user",
+              content: question
+            }
+          ],
+          max_tokens: 200
+        })
+      }
+    );
 
     const data = await response.json();
 
@@ -57,14 +75,12 @@ Keep answers concise, musical, and human.
     console.log("OPENAI RAW RESPONSE:");
     console.log(JSON.stringify(data, null, 2));
 
-    // If OpenAI fails
     if (!response.ok) {
       return res.json({
         answer: "OpenAI error: " + (data.error?.message || "Unknown error")
       });
     }
 
-    // Safe extraction
     const answer = data?.choices?.[0]?.message?.content;
 
     if (!answer) {
@@ -76,8 +92,7 @@ Keep answers concise, musical, and human.
     res.json({ answer });
 
   } catch (err) {
-    console.error("SERVER ERROR:");
-    console.error(err);
+    console.error("SERVER ERROR:", err);
 
     res.json({
       answer: "Server error: " + err.message
