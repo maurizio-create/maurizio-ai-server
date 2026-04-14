@@ -3,14 +3,13 @@ import fetch from "node-fetch";
 import bodyParser from "body-parser";
 import cors from "cors";
 import fs from "fs";
-import path from "path";
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(cors());
 
-// Your OpenAI key (must be set in Render ENV variables)
+// OpenAI key (Render ENV variable)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/ask-maurizio", async (req, res) => {
@@ -24,16 +23,9 @@ app.post("/ask-maurizio", async (req, res) => {
   }
 
   try {
-    // ✅ LOAD LATEST FILES ON EVERY REQUEST (NO CACHE)
-    const knowledge = fs.readFileSync(
-      path.resolve("./avatars/Knowledge.txt"),
-      "utf8"
-    );
-
-    const personality = fs.readFileSync(
-      path.resolve("./avatars/Personality.txt"),
-      "utf8"
-    );
+    // ✅ LOAD FILES FROM ROOT (NO avatars FOLDER)
+    const knowledge = fs.readFileSync("./Knowledge.txt", "utf8");
+    const personality = fs.readFileSync("./Personality.txt", "utf8");
 
     const response = await fetch(
       "https://api.openai.com/v1/chat/completions",
@@ -100,7 +92,7 @@ Keep answers concise, musical, and human.
   }
 });
 
-// Render uses this port automatically
+// Render port
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
